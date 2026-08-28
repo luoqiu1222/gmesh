@@ -27,3 +27,35 @@ jobs:
         run: |
           lipo build/src/gmesh -info
           lipo build/src/gmesh -verify_arch arm64 x86_64
+      - name: Stage distribution metadata
+        run: |
+          cmake -E make_directory artifact
+          cmake -E copy LICENSE NOTICE.md THIRD_PARTY_LICENSES.md artifact
+          cmake -E copy_directory LICENSES artifact/LICENSES
+      - name: Stage Windows executable
+        if: runner.os == 'Windows'
+        run: cmake -E copy build/src/Release/gmesh.exe artifact/gmesh.exe
+      - name: Stage Unix executable
+        if: runner.os != 'Windows'
+        run: cmake -E copy build/src/gmesh artifact/gmesh
+      - name: Upload Windows artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: gmesh-windows-x64
+          path: artifact
+          if-no-files-found: error
+      - name: Upload Linux artifact
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: gmesh-linux-x64
+          path: artifact
+          if-no-files-found: error
+      - name: Upload macOS artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v7
+        with:
+          name: gmesh-macos-universal2
+          path: artifact
+          if-no-files-found: error
