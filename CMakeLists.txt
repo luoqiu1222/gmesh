@@ -19,15 +19,15 @@ set(GMESH_MACOS_DEPLOYMENT_TARGET "12.0" CACHE STRING
 # These cache variables must be initialized before project() selects a compiler.
 # Callers may override either value explicitly when a single-architecture or
 # different deployment target build is required.
-if(CMAKE_HOST_APPLE)
-    if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+if(CMAKE_HOST_APPLE OR CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
         set(CMAKE_OSX_DEPLOYMENT_TARGET
             "${GMESH_MACOS_DEPLOYMENT_TARGET}" CACHE STRING
-            "Minimum supported macOS version")
+            "Minimum supported macOS version" FORCE)
     endif()
-    if(GMESH_MACOS_UNIVERSAL AND NOT DEFINED CMAKE_OSX_ARCHITECTURES)
+    if(GMESH_MACOS_UNIVERSAL AND NOT CMAKE_OSX_ARCHITECTURES)
         set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING
-            "macOS target architectures")
+            "macOS target architectures" FORCE)
     endif()
 endif()
 
