@@ -1,8 +1,10 @@
 # SPDX-FileCopyrightText: 2026 gmesh contributors
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-only
 
 set(required_license_files
     "${CMAKE_CURRENT_LIST_DIR}/../LICENSE"
+    "${CMAKE_CURRENT_LIST_DIR}/../LICENSES/AGPL-3.0-only.txt"
+    "${CMAKE_CURRENT_LIST_DIR}/../LICENSES/BSL-1.0.txt"
     "${CMAKE_CURRENT_LIST_DIR}/../LICENSES/GPL-2.0-or-later.txt"
     "${CMAKE_CURRENT_LIST_DIR}/../LICENSES/GPL-3.0-or-later.txt"
     "${CMAKE_CURRENT_LIST_DIR}/../LICENSES/LGPL-3.0-or-later.txt"
@@ -18,14 +20,15 @@ endforeach()
 
 file(GLOB_RECURSE project_sources
     "${CMAKE_CURRENT_LIST_DIR}/../include/*.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/admesh-compat/*.h"
     "${CMAKE_CURRENT_LIST_DIR}/../src/*.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/../tests/*.cpp"
 )
 
 foreach(path IN LISTS project_sources)
     file(READ "${path}" content LIMIT 1024)
-    if(NOT content MATCHES "SPDX-License-Identifier: GPL-3.0-or-later")
-        message(FATAL_ERROR "Missing GPL-3.0-or-later SPDX identifier: ${path}")
+    if(NOT content MATCHES "SPDX-License-Identifier: AGPL-3.0-only")
+        message(FATAL_ERROR "Missing AGPL-3.0-only SPDX identifier: ${path}")
     endif()
 endforeach()
 

@@ -16,4 +16,4 @@ ctest --test-dir build -C Debug --output-on-failure
 - Record every dependency and its exact license in `THIRD_PARTY_LICENSES.md`.
 - Do not add proprietary code or code with an unknown license.
 
-Contributions are licensed under the project's `GPL-3.0-or-later` license.
+Contributions are licensed under the project's `AGPL-3.0-only` license.

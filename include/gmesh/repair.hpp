@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 gmesh contributors
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-only
 
 #pragma once
 
@@ -19,6 +19,12 @@ enum class RepairStatus : std::uint8_t {
     repair_failed,
 };
 
+enum class RepairMode : std::uint8_t {
+    import,
+    deep,
+    all,
+};
+
 struct MeshStats {
     std::uint64_t vertices   = 0;
     std::uint64_t triangles  = 0;
@@ -30,6 +36,7 @@ struct RepairOptions {
     std::filesystem::path input_path;
     std::filesystem::path output_path;
     std::filesystem::path report_path;
+    RepairMode            mode      = RepairMode::all;
     bool                  overwrite = false;
 };
 
@@ -50,6 +57,7 @@ struct RepairReport {
 [[nodiscard]] RepairReport repair_file(const RepairOptions &options);
 
 [[nodiscard]] std::string_view to_string(RepairStatus status) noexcept;
+[[nodiscard]] std::string_view to_string(RepairMode mode) noexcept;
 [[nodiscard]] std::string_view version() noexcept;
 
 } // namespace gmesh

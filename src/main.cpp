@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 gmesh contributors
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-only
 
 #include "gmesh/repair.hpp"
 
@@ -11,7 +11,9 @@ namespace {
 
 constexpr int exit_success          = 0;
 constexpr int exit_invalid_argument = 1;
+constexpr int exit_input_error      = 2;
 constexpr int exit_repair_failed    = 5;
+constexpr int exit_output_error     = 7;
 constexpr int exit_internal_error   = 10;
 
 void print_help()
@@ -28,13 +30,15 @@ void print_help()
         << "  --input <path>    Input mesh path\n"
         << "  --output <path>   Repaired mesh path\n"
         << "  --report <path>   Optional machine-readable report path\n"
+        << "  --mode <name>     import, deep, or all (default: all)\n"
         << "  --overwrite       Permit replacing an existing output file\n";
 }
 
 void print_license()
 {
-    std::cout << "gmesh is licensed under GNU GPL version 3 or later.\n"
-              << "See the LICENSE file distributed with this program.\n";
+    std::cout << "gmesh is licensed under GNU AGPL version 3 only.\n"
+              << "See the LICENSE file distributed with this program.\n"
+              << "Corresponding source: https://github.com/luoqiu1222/gmesh\n";
 }
 
 bool read_value(const int argc, char *argv[], int &index, std::filesystem::path &destination)
@@ -42,6 +46,18 @@ bool read_value(const int argc, char *argv[], int &index, std::filesystem::path 
     if (index + 1 >= argc)
         return false;
     destination = argv[++index];
+    return true;
+}
+
+bool read_mode(const int argc, char *argv[], int &index, gmesh::RepairMode &mode)
+{
+    if (index + 1 >= argc)
+        return false;
+    const std::string_view value = argv[++index];
+    if (value == "import") mode = gmesh::RepairMode::import;
+    else if (value == "deep") mode = gmesh::RepairMode::deep;
+    else if (value == "all") mode = gmesh::RepairMode::all;
+    else return false;
     return true;
 }
 
@@ -66,6 +82,11 @@ int run_repair(const int argc, char *argv[])
                 std::cerr << "error: --report requires a path\n";
                 return exit_invalid_argument;
             }
+        } else if (argument == "--mode") {
+            if (!read_mode(argc, argv, index, options.mode)) {
+                std::cerr << "error: --mode requires import, deep, or all\n";
+                return exit_invalid_argument;
+            }
         } else if (argument == "--overwrite") {
             options.overwrite = true;
         } else {
@@ -78,9 +99,12 @@ int run_repair(const int argc, char *argv[])
     if (!report.succeeded()) {
         std::cerr << "repair failed [" << gmesh::to_string(report.status) << "]: "
                   << report.message << '\n';
-        return report.status == gmesh::RepairStatus::invalid_argument
-                   ? exit_invalid_argument
-                   : exit_repair_failed;
+        switch (report.status) {
+        case gmesh::RepairStatus::invalid_argument: return exit_invalid_argument;
+        case gmesh::RepairStatus::input_error: return exit_input_error;
+        case gmesh::RepairStatus::output_error: return exit_output_error;
+        default: return exit_repair_failed;
+        }
     }
     return exit_success;
 }

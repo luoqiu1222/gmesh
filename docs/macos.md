@@ -51,7 +51,7 @@ Before shipping a macOS binary:
 1. Run the complete test suite on macOS.
 2. Verify both architectures with `lipo`.
 3. Confirm the deployment target with `otool -l build/src/gmesh`.
-4. Package the GPL license, notices, and corresponding-source location.
+4. Package the AGPL license, notices, and corresponding-source location.
 5. Code-sign the executable with the distributing organization's Developer ID.
 6. Notarize the final archive if it is downloaded outside the Mac App Store.
 

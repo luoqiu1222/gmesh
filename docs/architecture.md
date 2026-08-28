@@ -12,9 +12,10 @@ CLI argument parser
         ▼
 repair_file(options)                 external seam
         │
-        ├── read and validate input
-        ├── inspect topology
-        ├── repair geometry
+        ├── ADMesh STL import / import repair
+        ├── convert to an internal indexed mesh
+        ├── split and filter connected parts
+        ├── CGAL deep repair
         ├── validate repaired mesh
         ├── write output atomically
         └── produce report
@@ -30,7 +31,7 @@ gmesh executable
       ↓
 gmesh_core
       ↓
-future mesh I/O and repair dependencies
+ADMesh 0.98.5 + CGAL 5.6.3
 ```
 
 The core module must never depend on the executable or CLI parser.
@@ -41,11 +42,18 @@ The core module must never depend on the executable or CLI parser.
 files and a versioned report, not link `gmesh_core`, share memory, or exchange
 compiler-specific C++ objects.
 
-## Planned increments
+Install rules therefore ship the executable and license/notice files only.
+`gmesh_core` and its C++ header are repository-internal build/test seams, not a
+supported binary integration SDK.
 
-1. Add robust STL input and output.
-2. Add read-only topology inspection.
-3. Integrate the selected repair engine and record its exact license.
-4. Add post-repair closedness and geometry validation.
-5. Add atomic output and JSON report serialization.
-6. Add hostile-input limits, cancellation, and time budgets.
+## Implemented repair closure
+
+The migrated closure includes Orca's two-pass nearby-edge policy, isolated and
+degenerate facet removal, normal/volume correction, connected-component
+splitting, planar/thin/negligible component filtering, polygon-soup cleanup,
+non-manifold vertex duplication, self-union, hole triangulation/refinement,
+closedness validation and outward orientation. GUI progress, painting remap,
+convex-hull cache updates, wxWidgets, and slicer data types stay outside this
+standalone module.
+
+Hostile-input limits, cancellation and time budgets remain future work.

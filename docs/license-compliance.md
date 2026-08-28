@@ -2,19 +2,20 @@
 
 ## Project license
 
-Original gmesh source code is licensed under `GPL-3.0-or-later`. Project C++
-source and header files carry this SPDX identifier. The root `LICENSE` and
-`LICENSES/GPL-3.0-or-later.txt` contain the GNU GPL version 3 text.
+gmesh repair source is derived from OrcaSlicer and is licensed under
+`AGPL-3.0-only`. Project C++ source and header files carry this SPDX identifier.
+The root `LICENSE` and `LICENSES/AGPL-3.0-only.txt` contain the
+GNU Affero GPL version 3 text.
 
-## Planned ADMesh integration
+## ADMesh integration
 
 ADMesh's upstream `COPYING` contains GNU GPL version 2. Its source-file notices
 permit redistribution and modification under GPL version 2 or, at the
 recipient's option, any later version.
 
-If ADMesh is combined with GPLv3-or-later CGAL packages, gmesh will use the
-“or later” permission and distribute the combined work under
-`GPL-3.0-or-later`. Integration must preserve:
+gmesh pins ADMesh 0.98.5 and compiles its six repair/I/O C sources. It uses the
+“or later” permission to combine them into the AGPLv3-only program. Releases
+must preserve:
 
 - upstream copyright notices;
 - the GPL-2.0-or-later source notices;
@@ -23,13 +24,13 @@ If ADMesh is combined with GPLv3-or-later CGAL packages, gmesh will use the
 - prominent notices for modified files and modification dates;
 - all local changes as corresponding source.
 
-## Planned CGAL integration
+## CGAL integration
 
 CGAL uses package- and file-specific licensing. Foundation packages are often
 LGPL-3.0-or-later, while many higher-level geometry algorithms are
 GPL-3.0-or-later; commercial licensing is also available.
 
-Before integration:
+For each dependency update:
 
 1. Pin an exact CGAL release or commit.
 2. List every included header and package.
@@ -40,8 +41,8 @@ Before integration:
 6. Preserve the matching license and copyright notices in binary and source
    distributions.
 
-If any required CGAL repair package is GPL-3.0-or-later, the distributed gmesh
-CLI and its complete corresponding source must comply with GPLv3-or-later.
+The distributed CLI and its complete corresponding source must comply with the
+project's AGPLv3-only terms and the applicable CGAL package terms.
 
 ## Release gate
 
