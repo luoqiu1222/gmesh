@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGMESH_BUILD_TESTS=ON -DGMESH_WARNINGS_AS_ERRORS=ON
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Verify macOS universal binary
+        if: runner.os == 'macOS'
+        run: |
+          lipo -info build/src/gmesh
+          lipo -verify_arch arm64 x86_64 build/src/gmesh
