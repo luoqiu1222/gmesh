@@ -106,6 +106,17 @@ int run_repair(const int argc, char *argv[])
         default: return exit_repair_failed;
         }
     }
+    const std::uint64_t repaired_count = report.warnings.auto_repaired.count();
+    if (repaired_count != 0) {
+        std::cerr << "warning: " << repaired_count
+                  << (repaired_count == 1 ? " error repaired\n" : " errors repaired\n");
+    }
+    const std::uint64_t non_manifold_edges = report.warnings.non_manifold_edges;
+    if (non_manifold_edges != 0) {
+        std::cerr << "warning: " << non_manifold_edges
+                  << (non_manifold_edges == 1 ? " non-manifold edge remains\n"
+                                              : " non-manifold edges remain\n");
+    }
     return exit_success;
 }
 

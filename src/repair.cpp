@@ -101,9 +101,23 @@ bool write_report(const std::filesystem::path &path, const RepairOptions &option
            << ", \"triangles\": " << report.output.triangles
            << ", \"open_edges\": " << report.output.open_edges
            << ", \"closed\": " << (report.output.closed ? "true" : "false") << "},\n"
-           << "  \"repairs\": {\"edges_fixed\": " << diagnostics.edges_fixed
-           << ", \"facets_removed\": " << diagnostics.facets_removed
-           << ", \"facets_reversed\": " << diagnostics.facets_reversed
+           << "  \"warnings\": {\"has_warning\": "
+           << (report.warnings.has_warning() ? "true" : "false")
+           << ", \"auto_repaired\": {\"count\": "
+           << report.warnings.auto_repaired.count()
+           << ", \"edges_fixed\": " << report.warnings.auto_repaired.edges_fixed
+           << ", \"degenerate_facets\": "
+           << report.warnings.auto_repaired.degenerate_facets
+           << ", \"facets_removed\": " << report.warnings.auto_repaired.facets_removed
+           << ", \"facets_reversed\": " << report.warnings.auto_repaired.facets_reversed
+           << ", \"backwards_edges\": " << report.warnings.auto_repaired.backwards_edges
+           << "}, \"remaining_errors\": {\"non_manifold_edges\": "
+           << report.warnings.non_manifold_edges << "}},\n"
+           << "  \"repairs\": {\"edges_fixed\": " << diagnostics.repaired.edges_fixed
+           << ", \"degenerate_facets\": " << diagnostics.repaired.degenerate_facets
+           << ", \"facets_removed\": " << diagnostics.repaired.facets_removed
+           << ", \"facets_reversed\": " << diagnostics.repaired.facets_reversed
+           << ", \"backwards_edges\": " << diagnostics.repaired.backwards_edges
            << ", \"parts_found\": " << diagnostics.parts_found
            << ", \"parts_removed\": " << diagnostics.parts_removed
            << ", \"holes_found\": " << diagnostics.holes_found
@@ -216,6 +230,8 @@ RepairReport repair_file(const RepairOptions &options)
     }
 
     RepairReport report{RepairStatus::success, "repair completed", input_stats, output_stats};
+    report.warnings.auto_repaired = diagnostics.repaired;
+    report.warnings.non_manifold_edges = output_stats.open_edges;
     if (!write_report(options.report_path, options, report, diagnostics, error)) {
         report.status = RepairStatus::output_error;
         report.message = std::move(error);
@@ -246,6 +262,6 @@ std::string_view to_string(const RepairMode mode) noexcept
     return "unknown";
 }
 
-std::string_view version() noexcept { return "0.2.0"; }
+std::string_view version() noexcept { return "0.3.0"; }
 
 } // namespace gmesh

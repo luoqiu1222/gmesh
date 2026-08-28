@@ -32,7 +32,7 @@ if(CMAKE_HOST_APPLE)
 endif()
 
 project(gmesh
-    VERSION 0.2.0
+    VERSION 0.3.0
     DESCRIPTION "Independent command-line tool for triangle-mesh repair"
     LANGUAGES C CXX
 )

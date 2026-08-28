@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-08-28
+
+- Matched Orca's model-warning semantics for repairs performed during import.
+- Reported remaining open edges as non-manifold-edge warnings.
+- Added stable warning details to JSON and human-readable CLI diagnostics.
+
 ## 0.2.0 - 2026-08-28
 
 - Migrated Orca's ADMesh STL import-repair sequence.

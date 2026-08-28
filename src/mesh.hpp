@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "gmesh/repair.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -25,9 +27,7 @@ struct Mesh {
 };
 
 struct RepairDiagnostics {
-    std::uint64_t edges_fixed       = 0;
-    std::uint64_t facets_removed    = 0;
-    std::uint64_t facets_reversed   = 0;
+    RepairedMeshErrors repaired;
     std::uint64_t parts_found       = 0;
     std::uint64_t parts_removed     = 0;
     std::uint64_t holes_found       = 0;

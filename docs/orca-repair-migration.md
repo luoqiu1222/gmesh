@@ -25,6 +25,8 @@ explicit.
 | Extract boundary cycles and triangulate/refine holes | `repair_part()` | `deep`, `all` |
 | Reject a result that remains open | `repair_part()`, `repair_file()` | `deep`, `all` |
 | Orient a closed mesh to bound a volume | `repair_part()` | `deep`, `all` |
+| Show that import errors were automatically repaired | `RepairReport::warnings.auto_repaired` | `import`, `all` |
+| Warn about remaining non-manifold edges | `RepairReport::warnings.non_manifold_edges` | all modes |
 
 ## Standalone additions
 

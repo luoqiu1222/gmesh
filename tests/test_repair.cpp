@@ -18,14 +18,15 @@ void write_open_cube(const std::filesystem::path &path)
         {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1},
     };
     // The two top faces are deliberately omitted.
-    constexpr int faces[10][3] = {
+    constexpr int faces[11][3] = {
         {0, 2, 1}, {0, 3, 2}, {0, 1, 5}, {0, 5, 4}, {1, 2, 6},
         {1, 6, 5}, {2, 3, 7}, {2, 7, 6}, {3, 0, 4}, {3, 4, 7},
+        {0, 0, 1}, // Repeated vertex: ADMesh must report/remove this facet.
     };
     std::ofstream output(path, std::ios::binary);
     const char header[80]{};
     output.write(header, sizeof(header));
-    const std::uint32_t face_count = 10;
+    const std::uint32_t face_count = 11;
     output.write(reinterpret_cast<const char *>(&face_count), sizeof(face_count));
     for (const auto &face : faces) {
         const float normal[3]{};
@@ -80,7 +81,9 @@ int main()
     integration.mode = gmesh::RepairMode::all;
     integration.overwrite = true;
     const gmesh::RepairReport repaired = gmesh::repair_file(integration);
-    if (!repaired.succeeded() || !repaired.output.closed || repaired.output.open_edges != 0) {
+    if (!repaired.succeeded() || !repaired.output.closed || repaired.output.open_edges != 0 ||
+        !repaired.warnings.auto_repaired.repaired() ||
+        repaired.warnings.has_remaining_errors()) {
         std::cerr << "open cube repair failed: " << repaired.message << '\n';
         return 1;
     }
@@ -91,11 +94,34 @@ int main()
                                   std::istreambuf_iterator<char>());
     if (report_text.find("\"status\": \"success\"") == std::string::npos ||
         report_text.find("\"closed\": true") == std::string::npos ||
-        report_text.find("\"holes_filled\": 1") == std::string::npos) {
+        report_text.find("\"holes_filled\": 1") == std::string::npos ||
+        report_text.find("\"degenerate_facets\": 1") == std::string::npos) {
         std::cerr << "repair report did not contain the expected topology diagnostics\n";
         return 1;
     }
     report_stream.close();
+
+    const std::filesystem::path import_output = test_root / "import-repaired.stl";
+    const std::filesystem::path import_report_path = test_root / "import-repair.json";
+    write_open_cube(input);
+    integration.output_path = import_output;
+    integration.report_path = import_report_path;
+    integration.mode = gmesh::RepairMode::import;
+    const gmesh::RepairReport imported = gmesh::repair_file(integration);
+    if (!imported.succeeded() || !imported.warnings.has_warning() ||
+        imported.warnings.non_manifold_edges != 4 ||
+        !imported.warnings.auto_repaired.repaired()) {
+        std::cerr << "Orca-compatible import warning state was not preserved\n";
+        return 1;
+    }
+    std::ifstream import_report_stream(import_report_path);
+    const std::string import_report_text((std::istreambuf_iterator<char>(import_report_stream)),
+                                         std::istreambuf_iterator<char>());
+    if (import_report_text.find("\"non_manifold_edges\": 4") == std::string::npos) {
+        std::cerr << "remaining non-manifold edges were not serialized\n";
+        return 1;
+    }
+    import_report_stream.close();
     std::filesystem::remove_all(test_root);
     return 0;
 }

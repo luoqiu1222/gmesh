@@ -66,9 +66,16 @@ void run_orca_import_sequence(stl_file &stl, RepairDiagnostics &diagnostics)
     if (stl.stats.number_of_facets > 0 && stl.stats.degenerate_facets > 0)
         stl_check_facets_exact(&stl);
 
-    diagnostics.edges_fixed     += static_cast<std::uint64_t>(std::max(0, stl.stats.edges_fixed));
-    diagnostics.facets_removed  += static_cast<std::uint64_t>(std::max(0, stl.stats.facets_removed));
-    diagnostics.facets_reversed += static_cast<std::uint64_t>(std::max(0, stl.stats.facets_reversed));
+    diagnostics.repaired.edges_fixed +=
+        static_cast<std::uint64_t>(std::max(0, stl.stats.edges_fixed));
+    diagnostics.repaired.degenerate_facets +=
+        static_cast<std::uint64_t>(std::max(0, stl.stats.degenerate_facets));
+    diagnostics.repaired.facets_removed +=
+        static_cast<std::uint64_t>(std::max(0, stl.stats.facets_removed));
+    diagnostics.repaired.facets_reversed +=
+        static_cast<std::uint64_t>(std::max(0, stl.stats.facets_reversed));
+    diagnostics.repaired.backwards_edges +=
+        static_cast<std::uint64_t>(std::max(0, stl.stats.backwards_edges));
 }
 
 bool convert_to_mesh(stl_file &stl, Mesh &mesh, std::string &error)

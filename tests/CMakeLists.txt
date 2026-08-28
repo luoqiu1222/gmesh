@@ -8,4 +8,4 @@ set_tests_properties(gmesh.cli.help PROPERTIES
     PASS_REGULAR_EXPRESSION "Independent triangle-mesh repair CLI")
 add_test(NAME gmesh.cli.version COMMAND $<TARGET_FILE:gmesh> --version)
 set_tests_properties(gmesh.cli.version PROPERTIES
-    PASS_REGULAR_EXPRESSION "gmesh 0.2.0")
+    PASS_REGULAR_EXPRESSION "gmesh 0.3.0")

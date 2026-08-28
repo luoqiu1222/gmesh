@@ -32,6 +32,38 @@ struct MeshStats {
     bool          closed     = false;
 };
 
+// Mirrors OrcaSlicer's RepairedMeshErrors categories and counting semantics.
+struct RepairedMeshErrors {
+    std::uint64_t edges_fixed       = 0;
+    std::uint64_t degenerate_facets = 0;
+    std::uint64_t facets_removed    = 0;
+    std::uint64_t facets_reversed   = 0;
+    std::uint64_t backwards_edges   = 0;
+
+    [[nodiscard]] std::uint64_t count() const noexcept
+    {
+        return edges_fixed + degenerate_facets + facets_removed + facets_reversed +
+               backwards_edges;
+    }
+
+    [[nodiscard]] bool repaired() const noexcept { return count() != 0; }
+};
+
+struct MeshWarningInfo {
+    RepairedMeshErrors auto_repaired;
+    std::uint64_t      non_manifold_edges = 0;
+
+    [[nodiscard]] bool has_remaining_errors() const noexcept
+    {
+        return non_manifold_edges != 0;
+    }
+
+    [[nodiscard]] bool has_warning() const noexcept
+    {
+        return auto_repaired.repaired() || has_remaining_errors();
+    }
+};
+
 struct RepairOptions {
     std::filesystem::path input_path;
     std::filesystem::path output_path;
@@ -45,6 +77,7 @@ struct RepairReport {
     std::string  message;
     MeshStats    input;
     MeshStats    output;
+    MeshWarningInfo warnings;
 
     [[nodiscard]] bool succeeded() const noexcept
     {

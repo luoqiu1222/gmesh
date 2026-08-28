@@ -87,6 +87,14 @@ On macOS and Linux the executable is named `gmesh` rather than `gmesh.exe`.
 (the default) runs both, matching an STL that later reaches Orca's explicit
 “Fix Model” operation. This release accepts STL input and writes binary STL.
 
+Like Orca, gmesh distinguishes repairs already performed from errors that
+remain. It reports the five Orca auto-repair counters (fixed edges, degenerate
+facets, removed facets, reversed facets, and backwards edges), and reports
+remaining open edges to users as non-manifold edges. Warnings are written to
+stderr and to the JSON report. A warning does not change a successful exit code;
+the calling application should inspect `warnings.has_warning` when it needs to
+show an abnormal-model indicator.
+
 ## Design
 
 The public module interface is intentionally small:
