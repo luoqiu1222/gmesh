@@ -14,6 +14,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Check licenses
+        run: cmake -P cmake/check_licenses.cmake
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGMESH_BUILD_TESTS=ON -DGMESH_WARNINGS_AS_ERRORS=ON
       - name: Build

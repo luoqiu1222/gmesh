@@ -37,6 +37,9 @@ if(GMESH_BUILD_TESTS)
     include(CTest)
     enable_testing()
     add_subdirectory(tests)
+    add_test(NAME gmesh.licenses
+             COMMAND "${CMAKE_COMMAND}" -P
+                     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_licenses.cmake")
 endif()
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/gmesh"

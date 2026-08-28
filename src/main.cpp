@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 gmesh contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "gmesh/repair.hpp"
 
 #include <filesystem>

@@ -9,3 +9,5 @@
 - Public `repair_file()` module interface.
 - Core and CLI smoke tests.
 - Universal Apple Silicon and Intel macOS build configuration.
+- SPDX source declarations and automated license checks.
+- ADMesh and CGAL pre-integration compliance records.

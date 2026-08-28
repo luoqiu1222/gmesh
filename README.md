@@ -98,6 +98,11 @@ This project is licensed under `GPL-3.0-or-later`. See [`LICENSE`](LICENSE).
 Third-party dependencies must be recorded in
 [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md) before release.
 
+ADMesh and CGAL are planned but not yet integrated. Their package-level license
+review and required attribution process are documented in
+[`docs/license-compliance.md`](docs/license-compliance.md). CI rejects project
+source files that omit the required SPDX identifier.
+
 ## Security
 
 Mesh files are untrusted input. Please read [`SECURITY.md`](SECURITY.md) before
