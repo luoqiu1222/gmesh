@@ -133,7 +133,7 @@ bool write_report(const std::filesystem::path &path, const RepairOptions &option
 
 RepairReport fail(const RepairStatus status, std::string message, const MeshStats input = {})
 {
-    return {status, std::move(message), input, {}};
+    return {status, std::move(message), input, {}, {}};
 }
 
 bool place_output(const std::filesystem::path &temporary,
@@ -229,7 +229,7 @@ RepairReport repair_file(const RepairOptions &options)
         return fail(RepairStatus::output_error, std::move(error), input_stats);
     }
 
-    RepairReport report{RepairStatus::success, "repair completed", input_stats, output_stats};
+    RepairReport report{RepairStatus::success, "repair completed", input_stats, output_stats, {}};
     report.warnings.auto_repaired = diagnostics.repaired;
     report.warnings.non_manifold_edges = output_stats.open_edges;
     if (!write_report(options.report_path, options, report, diagnostics, error)) {
