@@ -209,7 +209,11 @@ RepairReport repair_file(const RepairOptions &options)
         return fail(RepairStatus::input_error, std::move(error));
 
     const MeshStats input_stats = stats_for(mesh);
-    if (options.mode != RepairMode::import && !detail::deep_repair(mesh, diagnostics, error))
+    // A closed mesh needs no hole reconstruction. Running polygon-soup repair,
+    // self-union, and hole filling again can split a valid result at duplicated
+    // seam vertices and makes complete repair non-idempotent.
+    if (options.mode != RepairMode::import && !input_stats.closed &&
+        !detail::deep_repair(mesh, diagnostics, error))
         return fail(RepairStatus::repair_failed, std::move(error), input_stats);
     const MeshStats output_stats = stats_for(mesh);
     if (mesh.triangles.empty())

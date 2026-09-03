@@ -56,4 +56,20 @@ closedness validation and outward orientation. GUI progress, painting remap,
 convex-hull cache updates, wxWidgets, and slicer data types stay outside this
 standalone module.
 
+Normal-direction correction is transactional: if ADMesh increases orientation
+conflicts on geometrically shared manifold edges, retain the pre-correction
+facets, neighbor links and statistics for the subsequent repair stages. This
+prevents repeated imports of non-manifold meshes from spreading local defects
+into large artificial holes.
+
+Before filling holes, coincident vertices within boundary cycles are merged to
+separate pinched openings. Narrow cylindrical wall patches can be fitted from
+their boundary support; new patch vertices and long chords are constrained to
+that surface without moving existing vertices. Other holes retain the general
+CGAL filling path.
+
+Dominant-plane detection uses a bounded set of points distributed around the
+rim to generate candidate planes, then scores each candidate against the full
+boundary. Its hypothesis count no longer grows quadratically with rim length.
+
 Hostile-input limits, cancellation and time budgets remain future work.

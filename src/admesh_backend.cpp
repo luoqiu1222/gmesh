@@ -8,7 +8,9 @@ extern "C" {
 }
 
 #include <algorithm>
+#include <array>
 #include <limits>
+#include <map>
 
 namespace gmesh::detail {
 namespace {
@@ -35,6 +37,49 @@ bool open_stl(const std::string &path, StlFile &stl, std::string &error)
     return true;
 }
 
+std::size_t manifold_winding_conflicts(const stl_file &stl)
+{
+    using Point = std::array<float, 3>;
+    using Edge = std::pair<Point, Point>;
+    std::map<Edge, std::pair<int, int>> edges;
+    for (int face = 0; face < stl.stats.number_of_facets; ++face) {
+        for (std::size_t corner = 0; corner < 3; ++corner) {
+            const auto &from = stl.facet_start[face].vertex[corner];
+            const auto &to = stl.facet_start[face].vertex[(corner + 1) % 3];
+            Point a{from.x, from.y, from.z}, b{to.x, to.y, to.z};
+            if (a == b) continue;
+            const int direction = a < b ? 1 : -1;
+            if (b < a) std::swap(a, b);
+            auto &use = edges[{a, b}];
+            ++use.first;
+            use.second += direction;
+        }
+    }
+    return std::count_if(edges.begin(), edges.end(), [](const auto &entry) {
+        return entry.second.first == 2 && entry.second.second != 0;
+    });
+}
+
+void fix_normal_directions_without_spreading_conflicts(stl_file &stl)
+{
+    // ADMesh's orientation traversal can revisit and flip an already oriented
+    // face across a non-manifold connection. On re-import this can spread a
+    // local conflict across thousands of otherwise valid edges, which become
+    // large artificial holes in the subsequent component split.
+    const auto conflicts_before = manifold_winding_conflicts(stl);
+    const auto stats_before = stl.stats;
+    const std::vector<stl_facet> facets(
+        stl.facet_start, stl.facet_start + stl.stats.number_of_facets);
+    const std::vector<stl_neighbors> neighbors(
+        stl.neighbors_start, stl.neighbors_start + stl.stats.number_of_facets);
+    stl_fix_normal_directions(&stl);
+    if (manifold_winding_conflicts(stl) > conflicts_before) {
+        std::copy(facets.begin(), facets.end(), stl.facet_start);
+        std::copy(neighbors.begin(), neighbors.end(), stl.neighbors_start);
+        stl.stats = stats_before;
+    }
+}
+
 void run_orca_import_sequence(stl_file &stl, RepairDiagnostics &diagnostics)
 {
     stl_check_facets_exact(&stl);
@@ -59,7 +104,7 @@ void run_orca_import_sequence(stl_file &stl, RepairDiagnostics &diagnostics)
 
     // Orca deliberately does not call ADMesh hole filling here. Complex holes
     // are handled by the explicit CGAL repair stage instead.
-    stl_fix_normal_directions(&stl);
+    fix_normal_directions_without_spreading_conflicts(stl);
     stl_fix_normal_values(&stl);
     stl_calculate_volume(&stl);
     stl_verify_neighbors(&stl);
