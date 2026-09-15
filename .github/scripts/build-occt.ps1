@@ -11,6 +11,7 @@ $arguments = @(
   "-S", $sourceDirectory,
   "-B", $buildDirectory,
   "-DCMAKE_BUILD_TYPE=Release",
+  "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
   "-DBUILD_LIBRARY_TYPE=Static",
   "-DBUILD_MODULE_FoundationClasses=OFF",
   "-DBUILD_MODULE_ModelingData=OFF",
