@@ -16,36 +16,8 @@ jobs:
       - uses: actions/checkout@v7
       - name: Check licenses
         run: cmake -P cmake/check_licenses.cmake
-      - name: Restore static OCCT 7.6.0
-        id: occt-cache
-        uses: actions/cache@v5
-        with:
-          path: .ci/occt-install
-          key: occt-7.6.0-static-${{ runner.os }}-v3
-      - name: Checkout OCCT 7.6.0
-        if: steps.occt-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v7
-        with:
-          repository: Open-Cascade-SAS/OCCT
-          ref: V7_6_0
-          path: .ci/occt-source
-      - name: Build static OCCT 7.6.0
-        if: steps.occt-cache.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: ./.github/scripts/build-occt.ps1
       - name: Configure
-        shell: pwsh
-        run: |
-          $arguments = @(
-            "-S", ".",
-            "-B", "build",
-            "-DCMAKE_BUILD_TYPE=Release",
-            "-DGMESH_BUILD_TESTS=ON",
-            "-DGMESH_WARNINGS_AS_ERRORS=ON",
-            "-DGMESH_ENABLE_STEP=ON",
-            "-DOpenCASCADE_DIR=${{ github.workspace }}/.ci/occt-install/cmake"
-          )
-          cmake @arguments
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGMESH_BUILD_TESTS=ON -DGMESH_WARNINGS_AS_ERRORS=ON
       - name: Build
         run: cmake --build build --config Release
       - name: Test

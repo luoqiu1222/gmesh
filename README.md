@@ -68,10 +68,6 @@ The minimum supported version defaults to macOS 12. It can be overridden with
 
 ## Usage
 
-Optional STEP/STP conversion is integrated into the same executable. See
-[`docs/step-import.md`](docs/step-import.md) for build options, the RMIP protocol,
-face recovery behavior, and the original-model regression command.
-
 ```powershell
 gmesh.exe --help
 gmesh.exe --version
@@ -89,8 +85,7 @@ On macOS and Linux the executable is named `gmesh` rather than `gmesh.exe`.
 `--mode import` runs Orca's ADMesh import sequence without hole filling.
 `--mode deep` runs connected-part filtering and CGAL repair. `--mode all`
 (the default) runs both, matching an STL that later reaches Orca's explicit
-“Fix Model” operation. Repair accepts STL input and writes binary STL; optional
-STEP conversion returns mesh data through the RMIP protocol.
+“Fix Model” operation. This release accepts STL input and writes binary STL.
 
 Like Orca, gmesh distinguishes repairs already performed from errors that
 remain. It reports the five Orca auto-repair counters (fixed edges, degenerate

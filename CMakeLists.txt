@@ -38,7 +38,6 @@ project(gmesh
 )
 
 option(GMESH_BUILD_TESTS "Build gmesh tests" ON)
-option(GMESH_ENABLE_STEP "Enable STEP conversion in gmesh" OFF)
 option(GMESH_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 option(GMESH_FETCH_DEPENDENCIES "Download pinned ADMesh and CGAL sources" ON)
 set(GMESH_ADMESH_SOURCE_DIR "" CACHE PATH "Path to an ADMesh 0.98.5 source tree")
