@@ -3,16 +3,89 @@
 const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
 const [exe, input, expectedFaces] = process.argv.slice(2);
+
+function findTinyIsolatedOpenings(positions, indices, tolerance = 1e-4) {
+  const welded = new Uint32Array(positions.length / 3);
+  const points = [];
+  const buckets = new Map();
+  const scale = 1 / tolerance;
+  for (let i = 0; i < welded.length; ++i) {
+    const point = Array.from(positions.subarray(i * 3, i * 3 + 3));
+    const key = point.map((value) => Math.round(value * scale)).join(",");
+    let id = buckets.get(key);
+    if (id === undefined) {
+      id = points.length;
+      buckets.set(key, id);
+      points.push(point);
+    }
+    welded[i] = id;
+  }
+
+  const edgeCounts = new Map();
+  for (let i = 0; i < indices.length; i += 3) {
+    const triangle = [welded[indices[i]], welded[indices[i + 1]], welded[indices[i + 2]]];
+    for (let j = 0; j < 3; ++j) {
+      const a = triangle[j],
+        b = triangle[(j + 1) % 3];
+      if (a === b) continue;
+      const key = a < b ? `${a},${b}` : `${b},${a}`;
+      edgeCounts.set(key, (edgeCounts.get(key) || 0) + 1);
+    }
+  }
+
+  const adjacency = new Map();
+  for (const [key, count] of edgeCounts) {
+    if (count !== 1) continue;
+    const [a, b] = key.split(",").map(Number);
+    if (!adjacency.has(a)) adjacency.set(a, []);
+    if (!adjacency.has(b)) adjacency.set(b, []);
+    adjacency.get(a).push(b);
+    adjacency.get(b).push(a);
+  }
+
+  const openings = [];
+  const seen = new Set();
+  for (const start of adjacency.keys()) {
+    if (seen.has(start)) continue;
+    const stack = [start],
+      component = [];
+    seen.add(start);
+    while (stack.length) {
+      const current = stack.pop();
+      component.push(current);
+      for (const next of adjacency.get(current) || []) {
+        if (!seen.has(next)) {
+          seen.add(next);
+          stack.push(next);
+        }
+      }
+    }
+    const min = [Infinity, Infinity, Infinity],
+      max = [-Infinity, -Infinity, -Infinity];
+    for (const id of component) {
+      for (let axis = 0; axis < 3; ++axis) {
+        min[axis] = Math.min(min[axis], points[id][axis]);
+        max[axis] = Math.max(max[axis], points[id][axis]);
+      }
+    }
+    const span = max.map((value, axis) => value - min[axis]);
+    if (component.length >= 20 && Math.max(...span) < 0.5) {
+      openings.push({ vertices: component.length, min, max });
+    }
+  }
+  return openings;
+}
+
 assert(
   exe && input,
   "Usage: node step_regression.cjs <gmesh.exe> <input.stp> [face-count]",
 );
 for (const [name, linear, angular] of [
   ["lowest", 0.05, 0.5],
-  ["low", 0.025, 0.25],
-  ["medium", 0.01, 0.1],
-  ["high", 0.005, 0.05],
-  ["highest", 0.001, 0.02],
+  ["very_low", 0.025, 0.25],
+  ["low", 0.01, 0.1],
+  ["medium", 0.005, 0.05],
+  ["high", 0.001, 0.02],
 ]) {
   const result = spawnSync(
     exe,
@@ -159,6 +232,13 @@ for (const [name, linear, angular] of [
       }
     }
     assert(maxGap < 1e-4, `${name}: visible long seam ${maxGap} mm`);
+    if (name === "medium") {
+      assert.deepEqual(
+        findTinyIsolatedOpenings(positions, indices),
+        [],
+        `${name}: visible tiny isolated opening`,
+      );
+    }
   }
   console.log(
     `PASS ${name}: ${report.faceCount} faces, ${report.recoveredFaceCount} recovered, ` +

@@ -54,6 +54,8 @@
 namespace mrp::model_import {
 namespace {
 
+constexpr double kBoundaryApproximationMaxArea = 0.01;
+
 double meshArea(const Handle(Poly_Triangulation) & mesh, const TopLoc_Location &location) {
     double area = 0;
     const auto transform = location.Transformation();
@@ -212,6 +214,7 @@ ImportErrorCode appendShape(const TopoDS_Shape &shape, const ImportOptions &opti
             triangulation->NbTriangles() == 0) {
             GProp_GProps properties;
             BRepGProp::SurfaceProperties(face, properties);
+            bool acceptedBoundaryApproximation = false;
             // Zero-area surfaces cannot cover a visible opening. Preserve this fact in the report.
             if (std::abs(properties.Mass()) < 1e-10) {
                 ++result.degenerateFaceCount;
@@ -301,12 +304,27 @@ ImportErrorCode appendShape(const TopoDS_Shape &shape, const ImportOptions &opti
                 try {
                     TopLoc_Location sharedLocation;
                     auto shared = meshSharedBoundary(face, sharedLocation, options);
+                    const double sharedArea =
+                        shared.IsNull() ? 0.0 : meshArea(shared, sharedLocation);
+                    const bool sharedAreaMatches =
+                        std::abs(sharedArea - properties.Mass()) <=
+                        std::max(1e-4, std::abs(properties.Mass()) * 0.05);
+                    // Coarse neighboring meshes can collapse a tiny curved face's area while
+                    // still providing the only boundary that closes the surrounding shell.
+                    acceptedBoundaryApproximation =
+                        !sharedAreaMatches && !shared.IsNull() && sharedArea > 0.0 &&
+                        std::abs(properties.Mass()) <= kBoundaryApproximationMaxArea;
                     if (!shared.IsNull() &&
-                        std::abs(meshArea(shared, sharedLocation) - properties.Mass()) <=
-                            std::max(1e-4, std::abs(properties.Mass()) * 0.05)) {
+                        (sharedAreaMatches || acceptedBoundaryApproximation)) {
                         triangulation = shared;
                         location = sharedLocation;
                         repaired = face;
+                        if (!sharedAreaMatches) {
+                            result.warnings.push_back(
+                                "STEP face " + std::to_string(result.faceCount) +
+                                " used a boundary-conforming approximation for a surface below " +
+                                "0.01 mm^2");
+                        }
                     }
                 } catch (const Standard_Failure &) {
                     result.warnings.push_back(
@@ -318,7 +336,8 @@ ImportErrorCode appendShape(const TopoDS_Shape &shape, const ImportOptions &opti
             }
             // A successful polygon triangulation must still cover the original CAD face.
             const double triangleArea = meshArea(triangulation, location);
-            if (std::abs(triangleArea - properties.Mass()) >
+            if (!acceptedBoundaryApproximation &&
+                std::abs(triangleArea - properties.Mass()) >
                 std::max(1e-4, std::abs(properties.Mass()) * 0.05)) {
                 return ImportErrorCode::TessellationFailed;
             }
