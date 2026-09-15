@@ -1,4 +1,8 @@
 add_executable(gmesh_core_tests test_repair.cpp)
+if(GMESH_ENABLE_STEP)
+    add_test(NAME gmesh.step.boundary COMMAND gmesh_step_boundary_tests)
+    add_test(NAME gmesh.step.protocol COMMAND gmesh_step_protocol_tests)
+endif()
 target_compile_features(gmesh_core_tests PRIVATE cxx_std_17)
 target_link_libraries(gmesh_core_tests PRIVATE gmesh::core)
 target_compile_definitions(gmesh_core_tests PRIVATE

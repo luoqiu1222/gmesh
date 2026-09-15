@@ -37,3 +37,15 @@ Boost's source archive SHA-256 is
 
 Review the exact packages and source files used, not only a library's top-level
 license description.
+# Optional STEP/STP backend
+
+STEP boundary recovery additionally uses CGAL 5.6.3's 2D constrained Delaunay
+triangulation package under its GPL-3.0-or-later license. Its source/version and
+full GPL license text are already recorded above and in `LICENSES`.
+
+Open CASCADE Technology **7.6.0**, as pinned by OrcaSlicer's OCCT dependency,
+is statically linked in the STEP-enabled Windows gmesh executable. Source:
+https://github.com/Open-Cascade-SAS/OCCT/tree/V7_6_0.
+License: LGPL-2.1 with the Open CASCADE exception. Full texts are in
+`LICENSES/OCCT-LGPL-2.1.txt` and `LICENSES/OCCT-exception.txt`.
+Build instructions and corresponding-source details are in `docs/step-import.md`.

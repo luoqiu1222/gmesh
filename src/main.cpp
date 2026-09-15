@@ -6,63 +6,72 @@
 #include <filesystem>
 #include <iostream>
 #include <string_view>
+#include <vector>
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#ifdef GMESH_ENABLE_STEP
+int run_step_convert(int argc, char **argv);
+#endif
 
 namespace {
 
-constexpr int exit_success          = 0;
+constexpr int exit_success = 0;
 constexpr int exit_invalid_argument = 1;
-constexpr int exit_input_error      = 2;
-constexpr int exit_repair_failed    = 5;
-constexpr int exit_output_error     = 7;
-constexpr int exit_internal_error   = 10;
+constexpr int exit_input_error = 2;
+constexpr int exit_repair_failed = 5;
+constexpr int exit_output_error = 7;
+constexpr int exit_internal_error = 10;
 
-void print_help()
-{
-    std::cout
-        << "gmesh " << gmesh::version() << '\n'
-        << "Independent triangle-mesh repair CLI\n\n"
-        << "Usage:\n"
-        << "  gmesh --help\n"
-        << "  gmesh --version\n"
-        << "  gmesh --license\n"
-        << "  gmesh repair --input <mesh> --output <mesh> [options]\n\n"
-        << "Repair options:\n"
-        << "  --input <path>    Input mesh path\n"
-        << "  --output <path>   Repaired mesh path\n"
-        << "  --report <path>   Optional machine-readable report path\n"
-        << "  --mode <name>     import, deep, or all (default: all)\n"
-        << "  --overwrite       Permit replacing an existing output file\n";
+void print_help() {
+    std::cout << "gmesh " << gmesh::version() << '\n'
+              << "Independent triangle-mesh repair CLI\n\n"
+              << "Usage:\n"
+              << "  gmesh --help\n"
+              << "  gmesh --version\n"
+              << "  gmesh --license\n"
+              << "  gmesh repair --input <mesh> --output <mesh> [options]\n\n"
+#ifdef GMESH_ENABLE_STEP
+              << "  gmesh convert --input <model.stp> --format step --output-stdio [options]\n\n"
+#endif
+              << "Repair options:\n"
+              << "  --input <path>    Input mesh path\n"
+              << "  --output <path>   Repaired mesh path\n"
+              << "  --report <path>   Optional machine-readable report path\n"
+              << "  --mode <name>     import, deep, or all (default: all)\n"
+              << "  --overwrite       Permit replacing an existing output file\n";
 }
 
-void print_license()
-{
+void print_license() {
     std::cout << "gmesh is licensed under GNU AGPL version 3 only.\n"
               << "See the LICENSE file distributed with this program.\n"
               << "Corresponding source: https://github.com/luoqiu1222/gmesh\n";
 }
 
-bool read_value(const int argc, char *argv[], int &index, std::filesystem::path &destination)
-{
+bool read_value(const int argc, char *argv[], int &index, std::filesystem::path &destination) {
     if (index + 1 >= argc)
         return false;
-    destination = argv[++index];
+    destination = std::filesystem::u8path(argv[++index]);
     return true;
 }
 
-bool read_mode(const int argc, char *argv[], int &index, gmesh::RepairMode &mode)
-{
+bool read_mode(const int argc, char *argv[], int &index, gmesh::RepairMode &mode) {
     if (index + 1 >= argc)
         return false;
     const std::string_view value = argv[++index];
-    if (value == "import") mode = gmesh::RepairMode::import;
-    else if (value == "deep") mode = gmesh::RepairMode::deep;
-    else if (value == "all") mode = gmesh::RepairMode::all;
-    else return false;
+    if (value == "import")
+        mode = gmesh::RepairMode::import;
+    else if (value == "deep")
+        mode = gmesh::RepairMode::deep;
+    else if (value == "all")
+        mode = gmesh::RepairMode::all;
+    else
+        return false;
     return true;
 }
 
-int run_repair(const int argc, char *argv[])
-{
+int run_repair(const int argc, char *argv[]) {
     gmesh::RepairOptions options;
 
     for (int index = 2; index < argc; ++index) {
@@ -97,13 +106,17 @@ int run_repair(const int argc, char *argv[])
 
     const gmesh::RepairReport report = gmesh::repair_file(options);
     if (!report.succeeded()) {
-        std::cerr << "repair failed [" << gmesh::to_string(report.status) << "]: "
-                  << report.message << '\n';
+        std::cerr << "repair failed [" << gmesh::to_string(report.status) << "]: " << report.message
+                  << '\n';
         switch (report.status) {
-        case gmesh::RepairStatus::invalid_argument: return exit_invalid_argument;
-        case gmesh::RepairStatus::input_error: return exit_input_error;
-        case gmesh::RepairStatus::output_error: return exit_output_error;
-        default: return exit_repair_failed;
+        case gmesh::RepairStatus::invalid_argument:
+            return exit_invalid_argument;
+        case gmesh::RepairStatus::input_error:
+            return exit_input_error;
+        case gmesh::RepairStatus::output_error:
+            return exit_output_error;
+        default:
+            return exit_repair_failed;
         }
     }
     const std::uint64_t repaired_count = report.warnings.auto_repaired.count();
@@ -122,8 +135,7 @@ int run_repair(const int argc, char *argv[])
 
 } // namespace
 
-int main(const int argc, char *argv[])
-{
+int run_gmesh(const int argc, char *argv[]) {
     try {
         if (argc <= 1) {
             print_help();
@@ -143,6 +155,10 @@ int main(const int argc, char *argv[])
             print_license();
             return exit_success;
         }
+#ifdef GMESH_ENABLE_STEP
+        if (command == "convert")
+            return run_step_convert(argc, argv);
+#endif
         if (command == "repair")
             return run_repair(argc, argv);
 
@@ -153,3 +169,28 @@ int main(const int argc, char *argv[])
         return exit_internal_error;
     }
 }
+
+#ifdef _WIN32
+int wmain(int argc, wchar_t **wideArgv) {
+    std::vector<std::string> arguments;
+    for (int i = 0; i < argc; ++i) {
+        int size = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wideArgv[i], -1, nullptr, 0,
+                                       nullptr, nullptr);
+        if (size <= 0)
+            return exit_invalid_argument;
+        std::string value(size, '\0');
+        WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wideArgv[i], -1, value.data(), size,
+                            nullptr, nullptr);
+        value.pop_back();
+        arguments.push_back(std::move(value));
+    }
+    std::vector<char *> argv;
+    for (auto &argument : arguments)
+        argv.push_back(argument.data());
+    return run_gmesh(argc, argv.data());
+}
+#else
+int main(int argc, char **argv) {
+    return run_gmesh(argc, argv);
+}
+#endif
