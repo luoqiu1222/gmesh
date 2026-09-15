@@ -21,7 +21,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .ci/occt-install
-          key: occt-7.6.0-static-${{ runner.os }}-v2
+          key: occt-7.6.0-static-${{ runner.os }}-v3
       - name: Checkout OCCT 7.6.0
         if: steps.occt-cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v7

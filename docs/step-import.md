@@ -68,7 +68,8 @@ cmake -S <OCCT-7_6_0> -B occt-build -G Ninja `
   -DBUILD_MODULE_FoundationClasses=OFF -DBUILD_MODULE_ModelingData=OFF `
   -DBUILD_MODULE_ModelingAlgorithms=OFF -DBUILD_MODULE_Visualization=OFF `
   -DBUILD_MODULE_ApplicationFramework=OFF -DBUILD_MODULE_DataExchange=OFF `
-  -DBUILD_MODULE_Draw=OFF '-DBUILD_ADDITIONAL_TOOLKITS=TKSTEP TKMesh TKShHealing' `
+  -DBUILD_MODULE_Draw=OFF `
+  '-DBUILD_ADDITIONAL_TOOLKITS=TKSTEP TKSTEP209 TKSTEPAttr TKSTEPBase TKXSBase TKShHealing TKMesh TKPrim TKTopAlgo TKGeomAlgo TKBRep TKGeomBase TKG3d TKG2d TKMath TKernel' `
   -DUSE_TBB=OFF -DUSE_FREETYPE=OFF -DUSE_TCL=OFF `
   -DINSTALL_DIR=<occt-install> -DINSTALL_DIR_LIB=lib `
   -DINSTALL_DIR_INCLUDE=include/opencascade -DINSTALL_DIR_CMAKE=cmake
