@@ -54,7 +54,7 @@
 namespace mrp::model_import {
 namespace {
 
-constexpr double kBoundaryApproximationMaxArea = 0.01;
+constexpr double kCoordinatedRemeshScale = 0.6;
 
 double meshArea(const Handle(Poly_Triangulation) & mesh, const TopLoc_Location &location) {
     double area = 0;
@@ -189,6 +189,39 @@ Handle(Poly_Triangulation) meshSharedBoundary(const TopoDS_Face &face, TopLoc_Lo
     return result;
 }
 
+bool needsCoordinatedRemesh(const TopoDS_Shape &shape, const ImportOptions &options) {
+    for (TopExp_Explorer faces(shape, TopAbs_FACE); faces.More(); faces.Next()) {
+        const auto face = TopoDS::Face(faces.Current());
+        TopLoc_Location location;
+        const auto triangulation = BRep_Tool::Triangulation(face, location);
+        if (!triangulation.IsNull() && triangulation->NbNodes() > 0 &&
+            triangulation->NbTriangles() > 0) {
+            continue;
+        }
+
+        GProp_GProps properties;
+        BRepGProp::SurfaceProperties(face, properties);
+        if (std::abs(properties.Mass()) < 1e-10 ||
+            BRepAdaptor_Surface(face).GetType() == GeomAbs_Plane) {
+            continue;
+        }
+
+        try {
+            TopLoc_Location sharedLocation;
+            const auto shared = meshSharedBoundary(face, sharedLocation, options);
+            if (!shared.IsNull()) {
+                const double areaError = std::abs(meshArea(shared, sharedLocation) -
+                                                  properties.Mass());
+                if (areaError > std::max(1e-4, std::abs(properties.Mass()) * 0.05))
+                    return true;
+            }
+        } catch (const Standard_Failure &) {
+        } catch (const std::runtime_error &) {
+        }
+    }
+    return false;
+}
+
 bool wouldExceedOutputLimit(const ImportResult &result, const ImportOptions &options,
                             std::uint64_t addedVertices, std::uint64_t addedTriangles) {
     const std::uint64_t vertices = result.vertexCount() + addedVertices;
@@ -214,7 +247,6 @@ ImportErrorCode appendShape(const TopoDS_Shape &shape, const ImportOptions &opti
             triangulation->NbTriangles() == 0) {
             GProp_GProps properties;
             BRepGProp::SurfaceProperties(face, properties);
-            bool acceptedBoundaryApproximation = false;
             // Zero-area surfaces cannot cover a visible opening. Preserve this fact in the report.
             if (std::abs(properties.Mass()) < 1e-10) {
                 ++result.degenerateFaceCount;
@@ -309,22 +341,10 @@ ImportErrorCode appendShape(const TopoDS_Shape &shape, const ImportOptions &opti
                     const bool sharedAreaMatches =
                         std::abs(sharedArea - properties.Mass()) <=
                         std::max(1e-4, std::abs(properties.Mass()) * 0.05);
-                    // Coarse neighboring meshes can collapse a tiny curved face's area while
-                    // still providing the only boundary that closes the surrounding shell.
-                    acceptedBoundaryApproximation =
-                        !sharedAreaMatches && !shared.IsNull() && sharedArea > 0.0 &&
-                        std::abs(properties.Mass()) <= kBoundaryApproximationMaxArea;
-                    if (!shared.IsNull() &&
-                        (sharedAreaMatches || acceptedBoundaryApproximation)) {
+                    if (!shared.IsNull() && sharedAreaMatches) {
                         triangulation = shared;
                         location = sharedLocation;
                         repaired = face;
-                        if (!sharedAreaMatches) {
-                            result.warnings.push_back(
-                                "STEP face " + std::to_string(result.faceCount) +
-                                " used a boundary-conforming approximation for a surface below " +
-                                "0.01 mm^2");
-                        }
                     }
                 } catch (const Standard_Failure &) {
                     result.warnings.push_back(
@@ -336,8 +356,7 @@ ImportErrorCode appendShape(const TopoDS_Shape &shape, const ImportOptions &opti
             }
             // A successful polygon triangulation must still cover the original CAD face.
             const double triangleArea = meshArea(triangulation, location);
-            if (!acceptedBoundaryApproximation &&
-                std::abs(triangleArea - properties.Mass()) >
+            if (std::abs(triangleArea - properties.Mass()) >
                 std::max(1e-4, std::abs(properties.Mass()) * 0.05)) {
                 return ImportErrorCode::TessellationFailed;
             }
@@ -464,6 +483,17 @@ ImportOutcome StepImporter::import(std::istream &input, const std::string &sourc
                                         options.parallel);
         if (!mesher.IsDone()) {
             outcome.result.warnings.push_back("STEP shape could not be fully tessellated");
+        }
+        if (needsCoordinatedRemesh(rootShape, options)) {
+            BRepTools::Clean(rootShape);
+            BRepMesh_IncrementalMesh retry(rootShape, deflection * kCoordinatedRemeshScale, false,
+                                           options.angularDeflection, options.parallel);
+            outcome.result.warnings.push_back(
+                "STEP shape required coordinated remeshing to preserve a curved face");
+            if (!retry.IsDone()) {
+                outcome.result.warnings.push_back(
+                    "STEP shape could not be fully tessellated during coordinated remeshing");
+            }
         }
 
         std::uint32_t sourceIndex = 0;

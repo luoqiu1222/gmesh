@@ -41,10 +41,11 @@ vertices are refined against surface deflection and angular deviation, with
 a 100,000-vertex/16-iteration limit. Refinement preserves boundary constraints;
 intersection vertices are interpolated along the original shared polylines.
 Candidates that fail the CAD area check are discarded in favor of the existing
-validated recovery mesh. For curved CAD faces below 0.01 mm², a complete
-neighbor boundary is preferred even when coarse tessellation makes its patch
-area fail that check. The approximation is reported in `warnings`; preserving
-the shared edge prevents the isolated recovery mesh from opening a visible hole.
+validated recovery mesh. When a missing curved face has a complete shared
+boundary but that boundary would collapse most of its CAD area, gmesh cleans
+the shape and retries coordinated tessellation at 60% of the original linear
+deflection before emitting any faces. This lets OCCT regenerate the face and its
+neighbors together instead of accepting a closed but visually empty patch.
 
 Vertex normals now come from CAD surface derivatives when UV coordinates are
 available, preserving curved shading independently of triangle density. At
@@ -54,7 +55,8 @@ positions, and corrected triangles are counted in `reorientedTriangleCount`.
 
 The plate regression additionally checks triangle/normal agreement, samples
 long boundary pairs to detect geometric gaps despite different subdivisions,
-and rejects sub-millimeter isolated boundary loops at the frontend medium preset.
+rejects sub-millimeter isolated boundary loops, and checks that the formerly
+missing curved patch retains visible area at the frontend medium preset.
 The original long slit had a sampled gap of 0.02194 mm; the shared-boundary fix
 reduced it to about 0.0000025 mm before subsequent interior refinement. This is
 a geometry check, not a screenshot comparison or a watertightness guarantee.

@@ -161,6 +161,8 @@ for (const [name, linear, angular] of [
     indicesBuffer.length / 4,
   );
   const longEdges = new Map();
+  let holePatchArea = 0;
+  let holePatchTriangles = 0;
   for (let i = 0; i < indices.length; i += 3) {
     const ids = [indices[i], indices[i + 1], indices[i + 2]];
     const [a, b, c] = ids.map((id) => id * 3);
@@ -173,6 +175,22 @@ for (const [name, linear, angular] of [
     const nx = y1 * z2 - z1 * y2,
       ny = z1 * x2 - x1 * z2,
       nz = x1 * y2 - y1 * x2;
+    if (
+      ids.every((id) => {
+        const offset = id * 3;
+        return (
+          positions[offset] >= 87.46 &&
+          positions[offset] <= 87.61 &&
+          positions[offset + 1] >= 18.29 &&
+          positions[offset + 1] <= 18.32 &&
+          positions[offset + 2] >= 26.82 &&
+          positions[offset + 2] <= 26.89
+        );
+      })
+    ) {
+      holePatchArea += Math.hypot(nx, ny, nz) * 0.5;
+      holePatchTriangles++;
+    }
     const dot =
       nx * (normals[a] + normals[b] + normals[c]) +
       ny * (normals[a + 1] + normals[b + 1] + normals[c + 1]) +
@@ -233,6 +251,10 @@ for (const [name, linear, angular] of [
     }
     assert(maxGap < 1e-4, `${name}: visible long seam ${maxGap} mm`);
     if (name === "medium") {
+      assert(
+        holePatchTriangles > 2 && holePatchArea > 0.001,
+        `${name}: curved hole patch collapsed (${holePatchTriangles} triangles, ${holePatchArea} mm^2)`,
+      );
       assert.deepEqual(
         findTinyIsolatedOpenings(positions, indices),
         [],
