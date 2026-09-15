@@ -14,6 +14,7 @@
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepBndLib.hxx>
+#include <BRep_Builder.hxx>
 #include <BRepBuilderAPI_Copy.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
@@ -42,6 +43,8 @@
 #include <TopExp_Explorer.hxx>
 #include <TopLoc_Location.hxx>
 #include <TopoDS.hxx>
+#include <TopoDS_Compound.hxx>
+#include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Wire.hxx>
@@ -54,7 +57,7 @@
 namespace mrp::model_import {
 namespace {
 
-constexpr double kCoordinatedRemeshScale = 0.6;
+constexpr double kCoordinatedRemeshScale = 0.2;
 
 double meshArea(const Handle(Poly_Triangulation) & mesh, const TopLoc_Location &location) {
     double area = 0;
@@ -189,7 +192,9 @@ Handle(Poly_Triangulation) meshSharedBoundary(const TopoDS_Face &face, TopLoc_Lo
     return result;
 }
 
-bool needsCoordinatedRemesh(const TopoDS_Shape &shape, const ImportOptions &options) {
+std::vector<TopoDS_Face> collapsedSharedBoundaryFaces(const TopoDS_Shape &shape,
+                                                      const ImportOptions &options) {
+    std::vector<TopoDS_Face> collapsed;
     for (TopExp_Explorer faces(shape, TopAbs_FACE); faces.More(); faces.Next()) {
         const auto face = TopoDS::Face(faces.Current());
         TopLoc_Location location;
@@ -213,13 +218,52 @@ bool needsCoordinatedRemesh(const TopoDS_Shape &shape, const ImportOptions &opti
                 const double areaError = std::abs(meshArea(shared, sharedLocation) -
                                                   properties.Mass());
                 if (areaError > std::max(1e-4, std::abs(properties.Mass()) * 0.05))
-                    return true;
+                    collapsed.push_back(face);
             }
         } catch (const Standard_Failure &) {
         } catch (const std::runtime_error &) {
         }
     }
-    return false;
+    return collapsed;
+}
+
+TopoDS_Compound remeshNeighborhood(const TopoDS_Shape &shape,
+                                   const std::vector<TopoDS_Face> &targets) {
+    std::vector<TopoDS_Face> faces;
+    auto addFace = [&](const TopoDS_Face &candidate) {
+        if (std::none_of(faces.begin(), faces.end(),
+                         [&](const TopoDS_Face &face) { return face.IsSame(candidate); })) {
+            faces.push_back(candidate);
+        }
+    };
+
+    for (const auto &target : targets) {
+        addFace(target);
+        for (TopExp_Explorer targetEdges(target, TopAbs_EDGE); targetEdges.More();
+             targetEdges.Next()) {
+            const auto targetEdge = TopoDS::Edge(targetEdges.Current());
+            for (TopExp_Explorer candidates(shape, TopAbs_FACE); candidates.More();
+                 candidates.Next()) {
+                const auto candidate = TopoDS::Face(candidates.Current());
+                for (TopExp_Explorer candidateEdges(candidate, TopAbs_EDGE); candidateEdges.More();
+                     candidateEdges.Next()) {
+                    if (targetEdge.IsSame(candidateEdges.Current())) {
+                        addFace(candidate);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    BRep_Builder builder;
+    TopoDS_Compound neighborhood;
+    builder.MakeCompound(neighborhood);
+    for (auto &face : faces) {
+        BRepTools::Clean(face);
+        builder.Add(neighborhood, face);
+    }
+    return neighborhood;
 }
 
 bool wouldExceedOutputLimit(const ImportResult &result, const ImportOptions &options,
@@ -484,15 +528,17 @@ ImportOutcome StepImporter::import(std::istream &input, const std::string &sourc
         if (!mesher.IsDone()) {
             outcome.result.warnings.push_back("STEP shape could not be fully tessellated");
         }
-        if (needsCoordinatedRemesh(rootShape, options)) {
-            BRepTools::Clean(rootShape);
-            BRepMesh_IncrementalMesh retry(rootShape, deflection * kCoordinatedRemeshScale, false,
-                                           options.angularDeflection, options.parallel);
+        const auto collapsedFaces = collapsedSharedBoundaryFaces(rootShape, options);
+        if (!collapsedFaces.empty()) {
+            auto neighborhood = remeshNeighborhood(rootShape, collapsedFaces);
+            BRepMesh_IncrementalMesh retry(neighborhood, deflection * kCoordinatedRemeshScale,
+                                           false, options.angularDeflection, options.parallel);
             outcome.result.warnings.push_back(
-                "STEP shape required coordinated remeshing to preserve a curved face");
+                "STEP face neighborhood required coordinated remeshing to preserve a curved face");
             if (!retry.IsDone()) {
                 outcome.result.warnings.push_back(
-                    "STEP shape could not be fully tessellated during coordinated remeshing");
+                    "STEP face neighborhood could not be fully tessellated during coordinated "
+                    "remeshing");
             }
         }
 

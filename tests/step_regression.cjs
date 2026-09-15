@@ -252,7 +252,7 @@ for (const [name, linear, angular] of [
     assert(maxGap < 1e-4, `${name}: visible long seam ${maxGap} mm`);
     if (name === "medium") {
       assert(
-        holePatchTriangles > 2 && holePatchArea > 0.001,
+        holePatchTriangles >= 20 && holePatchArea > 0.001,
         `${name}: curved hole patch collapsed (${holePatchTriangles} triangles, ${holePatchArea} mm^2)`,
       );
       assert.deepEqual(

@@ -43,9 +43,10 @@ intersection vertices are interpolated along the original shared polylines.
 Candidates that fail the CAD area check are discarded in favor of the existing
 validated recovery mesh. When a missing curved face has a complete shared
 boundary but that boundary would collapse most of its CAD area, gmesh cleans
-the shape and retries coordinated tessellation at 60% of the original linear
-deflection before emitting any faces. This lets OCCT regenerate the face and its
-neighbors together instead of accepting a closed but visually empty patch.
+the affected face and its edge-sharing neighbors, then retries their coordinated
+tessellation at 20% of the original linear deflection before emitting any faces.
+This lets OCCT regenerate the local patch together instead of accepting a closed
+but visually empty patch or changing tessellation elsewhere in the model.
 
 Vertex normals now come from CAD surface derivatives when UV coordinates are
 available, preserving curved shading independently of triangle density. At
