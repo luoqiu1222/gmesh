@@ -57,7 +57,9 @@ a geometry check, not a screenshot comparison or a watertightness guarantee.
 
 ## Build
 
-STEP support is optional and defaults off to preserve existing repair-only CI.
+STEP support is optional and defaults off for ordinary local builds. CI builds
+static OCCT 7.6.0 and enables STEP for the Windows, Linux, and universal macOS
+artifacts.
 Build OCCT **7.6.0** statically first, with no TBB or visualization dependencies:
 
 ```powershell
@@ -103,5 +105,5 @@ faces are accounted for, only one negligible-area face is excluded, and the
 reported buffer sizes and protocol termination agree. The original user CAD
 file is not redistributed in this repository.
 
-Windows frontend resolution and packaging now point to gmesh. The existing
-macOS STEP importer remains in use until a STEP-enabled macOS gmesh is built.
+Windows, Linux, and macOS distribution artifacts contain the same STEP-enabled
+gmesh command-line interface.
