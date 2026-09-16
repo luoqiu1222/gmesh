@@ -215,7 +215,7 @@ RepairReport repair_file(const RepairOptions &options)
     if (options.mode != RepairMode::import && !input_stats.closed &&
         !detail::deep_repair(mesh, diagnostics, error))
         return fail(RepairStatus::repair_failed, std::move(error), input_stats);
-    const MeshStats output_stats = stats_for(mesh);
+    const MeshStats output_stats = options.mode == RepairMode::import ? input_stats : stats_for(mesh);
     if (mesh.triangles.empty())
         return fail(RepairStatus::repair_failed, "repair produced an empty mesh", input_stats);
     if (options.mode != RepairMode::import && !output_stats.closed)

@@ -8,16 +8,16 @@
 #include <cstring>
 #include <fstream>
 #include <limits>
+#include <vector>
 
 namespace gmesh::detail {
 namespace {
 
-void write_float(std::ostream &stream, const float value)
+void append_float(char *&cursor, const float value)
 {
     static_assert(sizeof(float) == 4, "binary STL requires 32-bit floats");
-    std::array<char, 4> bytes{};
-    std::memcpy(bytes.data(), &value, bytes.size());
-    stream.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    std::memcpy(cursor, &value, sizeof(value));
+    cursor += sizeof(value);
 }
 
 Point normal_for(const Mesh &mesh, const Triangle &triangle)
@@ -58,6 +58,9 @@ bool write_binary_stl(const std::string &path, const Mesh &mesh, std::string &er
     output.write(header.data(), static_cast<std::streamsize>(header.size()));
     const std::uint32_t count = static_cast<std::uint32_t>(mesh.triangles.size());
     output.write(reinterpret_cast<const char *>(&count), sizeof(count));
+    constexpr std::size_t records_per_chunk = 16384;
+    std::vector<std::array<char, 50>> records;
+    records.reserve(records_per_chunk);
     for (const Triangle &triangle : mesh.triangles) {
         if (triangle[0] >= mesh.vertices.size() || triangle[1] >= mesh.vertices.size() ||
             triangle[2] >= mesh.vertices.size()) {
@@ -65,17 +68,27 @@ bool write_binary_stl(const std::string &path, const Mesh &mesh, std::string &er
             return false;
         }
         const Point normal = normal_for(mesh, triangle);
-        write_float(output, static_cast<float>(normal.x));
-        write_float(output, static_cast<float>(normal.y));
-        write_float(output, static_cast<float>(normal.z));
+        std::array<char, 50> record{};
+        char *cursor = record.data();
+        append_float(cursor, static_cast<float>(normal.x));
+        append_float(cursor, static_cast<float>(normal.y));
+        append_float(cursor, static_cast<float>(normal.z));
         for (const std::uint32_t index : triangle) {
             const Point &point = mesh.vertices[index];
-            write_float(output, static_cast<float>(point.x));
-            write_float(output, static_cast<float>(point.y));
-            write_float(output, static_cast<float>(point.z));
+            append_float(cursor, static_cast<float>(point.x));
+            append_float(cursor, static_cast<float>(point.y));
+            append_float(cursor, static_cast<float>(point.z));
         }
-        const std::uint16_t attribute = 0;
-        output.write(reinterpret_cast<const char *>(&attribute), sizeof(attribute));
+        records.push_back(record);
+        if (records.size() == records_per_chunk) {
+            output.write(reinterpret_cast<const char *>(records.data()),
+                         static_cast<std::streamsize>(records.size() * sizeof(records.front())));
+            records.clear();
+        }
+    }
+    if (!records.empty()) {
+        output.write(reinterpret_cast<const char *>(records.data()),
+                     static_cast<std::streamsize>(records.size() * sizeof(records.front())));
     }
     if (!output) {
         error = "failed while writing output STL";
